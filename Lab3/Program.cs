@@ -24,6 +24,7 @@ public class Task3
     public void Encode()
     {
         var text = File.ReadAllText(_originalPath);
+        Console.WriteLine("Введите ключ");
         var k = Int32.Parse(Console.ReadLine()!);
 
         var result = Caesar.Encode(text, k);
@@ -169,7 +170,12 @@ public class Caesar
         for (var i = 0;i < alf.Length;i++)
         {
             var tmpLetterAndCount = GetCountDistrubutions(text, i);
-            degrees.Add((DegreeOfStatisticalDiscrepancy(tmpLetterAndCount,count),i));
+            var w = DegreeOfStatisticalDiscrepancy(tmpLetterAndCount, count);
+            degrees.Add((w,i));
+        }
+        foreach (var degree in degrees.OrderBy(x=>x.Item1))
+        {
+            Console.WriteLine($"Для ключа {degree.Item2}  W = {degree.Item1}");
         }
         double minW = degrees.Min(x=>x.Item1);
         int key = degrees.First(x=> x.Item1 == minW).Item2;

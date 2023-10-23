@@ -18,10 +18,13 @@ public class Task2
         var keys = keysText.Trim().Split(" ");
         var firstKey = keys.First();
         var secondKey = keys.Last();
-
+        Console.WriteLine("\nКодирование\n");
         var result = gronsfild.Encode(text, firstKey);
+        Console.WriteLine("После кодирования первым ключом \n"+result);
         result = gronsfild.Decode(result, secondKey);
+        Console.WriteLine("После декодирования вторым ключом \n" + result);
         result = gronsfild.Encode(result, firstKey);
+        Console.WriteLine("После кодирования первым ключом \n" + result);
         File.WriteAllText(_encodedPath, result);
     }
     public void Decode()
@@ -31,10 +34,13 @@ public class Task2
         var keys = keysText.Trim().Split(" ");
         var firstKey = keys.First();
         var secondKey = keys.Last();
-
+        Console.WriteLine("\nДекодирование\n");
         var result = gronsfild.Decode(text, firstKey);
+        Console.WriteLine("После декодирования первым ключом \n" + result);
         result = gronsfild.Encode(result, secondKey);
+        Console.WriteLine("После кодирования вторым ключом \n" + result);
         result = gronsfild.Decode(result, firstKey);
+        Console.WriteLine("После декодирования первым ключом \n" + result);
         File.WriteAllText(_decodedPath, result);
     }
 }
