@@ -1,7 +1,10 @@
 ﻿
-var t = new Task3();
+using System.Text;
 
-public class Task3
+var t = new Task4();
+t.Encode();
+
+public class Task4
 {
     readonly string _originalPath = Environment.CurrentDirectory + "/original.txt";
     readonly string _encodedPath = Environment.CurrentDirectory + "/encoded.txt";
@@ -9,6 +12,15 @@ public class Task3
 
     CongruentGenerator congruentGenerator = new CongruentGenerator(40693, 16);
     LFSR lfsr = new LFSR(17);
+    Dictionary<char,string> alfAndCode = new Dictionary<char,string>();
+
+    public Task4()
+    {
+        for (char i = 'А'; i <= 'я'; i++)
+        {
+            alfAndCode.Add(i,Helpers.IntToBinaryString(((byte)i),8));
+        }
+    }
 
     //public void Rewrite()
     //{
@@ -21,21 +33,58 @@ public class Task3
     {
         var text = File.ReadAllText(_originalPath);
 
+        Console.WriteLine("Текст:\n" + text);
+
         int firstStage = congruentGenerator.Generate(12345);
         string gamma = lfsr.GetGamma(firstStage, 128);
 
+        Console.WriteLine("Гамма:\n" + gamma);
 
-        //File.WriteAllText(_encodedPath, result);
+        var binaryText = textToBinaryString(text);
+
+        Console.WriteLine("Текст в бинарном представлении:\n" + binaryText);
+
+        for (; gamma.Length < binaryText.Length;)
+        {
+            gamma += gamma;
+        }
+
+        Console.WriteLine("Полная гамма в бинарном представлении:\n" + gamma);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < binaryText.Length; i++)
+        {
+            sb.Append(Helpers.XorOne(binaryText[i], gamma[i]));
+        }
+        var encodeBinary = sb.ToString();
+
+        Console.WriteLine("Текст после гаммирования в бинарном представлении:\n" + encodeBinary);
+
+        var encodeText = binaryToText(encodeBinary);
+
+        Console.WriteLine("Текст после гаммирования в буквенном представлении:\n" + encodeText);
+
+        File.WriteAllText(_encodedPath, encodeText);
     }
 
-    //public void Find()
-    //{
-    //    var text = File.ReadAllText(_encodedPath);
-
-    //    (var result, var key) = Caesar.FindBestKey(text);
-    //    Console.WriteLine($"Лучший ключ = {key}");
-    //    File.WriteAllText(_decodedPath, result);
-    //}
+    public string textToBinaryString(string text)
+    {
+        StringBuilder sb = new StringBuilder();
+        foreach (char c in text)
+        {
+            sb.Append(alfAndCode[c]);
+        }
+        return sb.ToString();
+    }
+    public string binaryToText(string binaryText)
+    {
+        var sb = new StringBuilder();
+        for(int i = 0;i<binaryText.Length;i+=8)
+        {
+            sb.Append(Helpers.BinaryToChar(binaryText.Substring(i, 8), 8));
+        }
+        return sb.ToString();
+    }
 }
 
 public static class Helpers
@@ -63,7 +112,7 @@ public static class Helpers
     {
         for (int i = 0;i<degree;i++)
         {
-            number *= number;
+            number *= 2;
         }
         return number;
     }
@@ -76,7 +125,20 @@ public static class Helpers
         }
         return s;
     }
-    public static int XOR(string s)
+    public static char BinaryToChar(string binary,int rate)
+    {
+        int res = 0;
+        for (int i=0;i<rate;i++)
+        {
+            res += Pow(Int32.Parse(binary[i].ToString()),i);
+        }
+        return (char)res;
+    }
+    public static char XorOne(char ch1,char ch2)
+    {
+        return ch1 == ch2 ? '0' : '1';
+    }
+    public static int XorAllElelemnt(string s)
     {
         int result = 0;
         foreach (var ch in s)
@@ -85,7 +147,7 @@ public static class Helpers
         }
         return result;
     }
-    public static int XOR(UInt32 number)
+    public static int XorAllElelemnt(UInt32 number)
     {
         return System.Numerics.BitOperations.PopCount(number) & 1;
     }
@@ -137,7 +199,7 @@ public class LFSR
     public int Generate(int start)                      
     {
         start = (start << 1) % m;
-        int xorTmp = Helpers.XOR((uint)start);
+        int xorTmp = Helpers.XorAllElelemnt((uint)start);
         start = xorTmp ^ start;
 
         return start;
