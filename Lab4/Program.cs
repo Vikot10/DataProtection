@@ -1,4 +1,5 @@
 ﻿
+using System.Linq.Expressions;
 using System.Text;
 
 var t = new Task4();
@@ -9,6 +10,7 @@ public class Task4
     readonly string _originalPath = Environment.CurrentDirectory + "/original.txt";
     readonly string _encodedPath = Environment.CurrentDirectory + "/encoded.txt";
     readonly string _decodedPath = Environment.CurrentDirectory + "/decoded.txt";
+    private int degreeAlf = 6;
 
     CongruentGenerator congruentGenerator = new CongruentGenerator(40693, 16);
     LFSR lfsr = new LFSR(17);
@@ -18,7 +20,7 @@ public class Task4
     {
         for (char i = 'А'; i <= 'я'; i++)
         {
-            alfAndCode.Add(i,Helpers.IntToBinaryString(((byte)i),8));
+            alfAndCode.Add(i,Helpers.IntToBinaryString(((byte)i),6));
         }
     }
 
@@ -36,6 +38,9 @@ public class Task4
         Console.WriteLine("Текст:\n" + text);
 
         int firstStage = congruentGenerator.Generate(12345);
+
+        Console.WriteLine("Первая ступень:\n" + firstStage);
+
         string gamma = lfsr.GetGamma(firstStage, 128);
 
         Console.WriteLine("Гамма:\n" + gamma);
@@ -79,9 +84,9 @@ public class Task4
     public string binaryToText(string binaryText)
     {
         var sb = new StringBuilder();
-        for(int i = 0;i<binaryText.Length;i+=8)
+        for(int i = 0;i<binaryText.Length;i+= degreeAlf)
         {
-            sb.Append(Helpers.BinaryToChar(binaryText.Substring(i, 8), 8));
+            sb.Append(Helpers.BinaryToChar(binaryText.Substring(i, degreeAlf), degreeAlf));
         }
         return sb.ToString();
     }
@@ -151,6 +156,15 @@ public static class Helpers
     {
         return System.Numerics.BitOperations.PopCount(number) & 1;
     }
+    public static int XorSomeElement(int number, int[] registers)
+    {
+        int result = 0;
+        foreach (var reg in registers)
+        {
+            result ^= number >> reg & 1;
+        }
+        return result;
+    }
 }
 
 public class CongruentGenerator
@@ -178,6 +192,7 @@ public class LFSR
 {
     readonly int m;
     readonly int rate;
+    List<int> registers = new List<int>();
     public LFSR(int rate)
     {
         this.m = Helpers.Pow(1,rate);
@@ -188,18 +203,35 @@ public class LFSR
     {
         string s = "";
         int el = start;
-        for (int i = 0; i < (int)Math.Ceiling((double)lenght/rate); i++)
+        string binaryStart = Helpers.IntToBinaryString(el, 16);
+
+        for( int i=0;i<binaryStart.Length;i++)
+        {
+            if (binaryStart[i] == '1')
+                registers.Add(i+1);
+        }
+        if(registers.Last() != rate-1)
+            registers.Add(rate-1);
+
+        for (int i = 0; i < lenght; i++)
         {
             el = Generate(el);
-            s += Helpers.IntToBinaryString(el, rate);
+
+            Console.WriteLine($"вторая ступень ({i}) = " + el);
+
+            var bin = Helpers.IntToBinaryString(el, rate);
+
+            Console.WriteLine($"вторая ступень ({i}) в бинарном представлении = " + bin);
+
+            s +=bin[rate-1];
         }
-        return s[..128];
+        return s;
     }
 
     public int Generate(int start)                      
     {
         start = (start << 1) % m;
-        int xorTmp = Helpers.XorAllElelemnt((uint)start);
+        int xorTmp = Helpers.XorSomeElement(start,registers.ToArray());
         start = xorTmp ^ start;
 
         return start;
