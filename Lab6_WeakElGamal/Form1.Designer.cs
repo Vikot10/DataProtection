@@ -44,6 +44,7 @@
             button1 = new Button();
             label2 = new Label();
             label3 = new Label();
+            button11 = new Button();
             button10 = new Button();
             button9 = new Button();
             label14 = new Label();
@@ -58,7 +59,6 @@
             label8 = new Label();
             label7 = new Label();
             label1 = new Label();
-            button11 = new Button();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -67,6 +67,7 @@
             // 
             // splitContainer1
             // 
+            splitContainer1.BorderStyle = BorderStyle.FixedSingle;
             splitContainer1.Dock = DockStyle.Fill;
             splitContainer1.Location = new Point(0, 0);
             splitContainer1.Name = "splitContainer1";
@@ -266,6 +267,17 @@
             label3.TabIndex = 1;
             label3.Text = "Получатель";
             // 
+            // button11
+            // 
+            button11.Font = new Font("Segoe UI", 14.25F, FontStyle.Regular, GraphicsUnit.Point);
+            button11.Location = new Point(286, 287);
+            button11.Name = "button11";
+            button11.Size = new Size(107, 31);
+            button11.TabIndex = 22;
+            button11.Text = "записать";
+            button11.UseVisualStyleBackColor = true;
+            button11.Click += button11_Click;
+            // 
             // button10
             // 
             button10.Font = new Font("Segoe UI", 14.25F, FontStyle.Regular, GraphicsUnit.Point);
@@ -408,17 +420,6 @@
             label1.Size = new Size(125, 23);
             label1.TabIndex = 0;
             label1.Text = "Отправитель";
-            // 
-            // button11
-            // 
-            button11.Font = new Font("Segoe UI", 14.25F, FontStyle.Regular, GraphicsUnit.Point);
-            button11.Location = new Point(286, 287);
-            button11.Name = "button11";
-            button11.Size = new Size(107, 31);
-            button11.TabIndex = 22;
-            button11.Text = "записать";
-            button11.UseVisualStyleBackColor = true;
-            button11.Click += button11_Click;
             // 
             // Form1
             // 

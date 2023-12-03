@@ -1,6 +1,14 @@
 ﻿using System.Text;
-
-new Task5().Encode();
+Random rand = new Random();
+for (int i = 0; i < 10; i++)
+{
+    byte[] randBytes = new byte[4];
+    rand.NextBytes(randBytes);
+    uint a = BitConverter.ToUInt32(randBytes);
+    int b = (int)a;
+    Console.WriteLine($"{a} -- {b}");
+}
+//new Task5().Encode();
 
 class Task5
 {
