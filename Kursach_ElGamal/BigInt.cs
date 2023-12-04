@@ -1,4 +1,6 @@
 ﻿
+using System.Drawing;
+
 namespace Kursach_ElGamal
 {
     public class BigInt
@@ -73,7 +75,15 @@ namespace Kursach_ElGamal
             //    dataLength--;
             EqualizeLenght(this);
         }
+        public BigInt(List<uint> nums)
+        {
+            dataLength = nums.Count;
 
+            data = new uint[dataLength];
+
+            for (int j = 0; j < dataLength; j--)
+                data[j] = nums[j];
+        }
         public void InitData()
         {
             data = new uint[maxLength];
@@ -136,56 +146,22 @@ namespace Kursach_ElGamal
         }
         public static BigInt operator +(BigInt bi1, BigInt bi2)
         {
-            BigInt result = new BigInt(false)
-            {
-                dataLength = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength
-            };
+            int lenght = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength;
+            List<uint> numbers = new List<uint>(lenght);
 
             long carry = 0;
-            for (int i = 0; i < result.dataLength; i++)
+            for (int i = 0; i < lenght; i++)
             {
-                long sum = (long)bi1.data[i] + (long)bi2.data[i] + carry;
+                long sum = carry;
+                if (bi1.dataLength > i)
+                    sum += bi1.data[i];
+                if (bi2.dataLength > i)
+                    sum += bi2.data[i];
                 carry = sum >> 32;
-                result.data[i] = (uint)(sum & 0xFFFFFFFF);
+                numbers.Add((uint)(sum & 0xFFFFFFFF));
             }
 
-            if (carry != 0 && result.dataLength < maxLength)
-            {
-                result.data[result.dataLength] = (uint)(carry);
-                result.dataLength++;
-            }
-
-            EqualizeLenght(result);
-
-            return result;
-        }
-        public static BigInt operator ++(BigInt bi1)
-        {
-            BigInt result = new BigInt(true,bi1);
-
-            long val, carry = 1;
-            int index = 0;
-
-            while (carry != 0 && index < maxLength)
-            {
-                val = (long)(result.data[index]);
-                val++;
-
-                result.data[index] = (uint)(val & 0xFFFFFFFF);
-                carry = val >> 32;
-
-                index++;
-            }
-
-            if (index > result.dataLength)
-                result.dataLength = index;
-            else
-            {
-                //while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                //    result.dataLength--;
-                EqualizeLenght(result);
-            }
-            return result;
+            return new BigInt(numbers);
         }
         public static BigInt operator -(BigInt bi1, BigInt bi2)
         {
@@ -208,7 +184,6 @@ namespace Kursach_ElGamal
                     carryIn = 0;
             }
 
-            // roll over to negative
             if (carryIn != 0)
             {
                 for (int i = result.dataLength; i < maxLength; i++)
@@ -216,150 +191,43 @@ namespace Kursach_ElGamal
                 result.dataLength = maxLength;
             }
 
-            // fixed in v1.03 to give correct datalength for a - (-b)
-            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                result.dataLength--;
-
-            // overflow check
-
-            int lastPos = maxLength - 1;
-            if ((bi1.data[lastPos] & 0x80000000) != (bi2.data[lastPos] & 0x80000000) &&
-               (result.data[lastPos] & 0x80000000) != (bi1.data[lastPos] & 0x80000000))
-            {
-                throw (new ArithmeticException());
-            }
-
-            return result;
-        }
-        public static BigInt operator --(BigInt bi1)
-        {
-            BigInt result = new BigInt(true, bi1);
-
-            long val;
-            bool carryIn = true;
-            int index = 0;
-
-            while (carryIn && index < maxLength)
-            {
-                val = (long)(result.data[index]);
-                val--;
-
-                result.data[index] = (uint)(val & 0xFFFFFFFF);
-
-                if (val >= 0)
-                    carryIn = false;
-
-                index++;
-            }
-
-            if (index > result.dataLength)
-                result.dataLength = index;
-
-            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                result.dataLength--;
-
-            // overflow check
-            int lastPos = maxLength - 1;
-
-            // overflow if initial value was -ve but -- caused a sign
-            // change to positive.
-
-            if ((bi1.data[lastPos] & 0x80000000) != 0 &&
-               (result.data[lastPos] & 0x80000000) != (bi1.data[lastPos] & 0x80000000))
-            {
-                throw (new ArithmeticException("Underflow in --."));
-            }
-
+            EqualizeLenght(result);
             return result;
         }
         public static BigInt operator *(BigInt bi1, BigInt bi2)
         {
-            int lastPos = maxLength - 1;
-            bool bi1Neg = false, bi2Neg = false;
+            int lenght = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength;
 
-            // take the absolute value of the inputs
-            try
+            List<List<uint>> numbers = new List<List<uint>>(lenght);
+            numbers.Add(new List<uint>());
+
+            for (int i = 0; i < bi1.dataLength; i++)
             {
-                if ((bi1.data[lastPos] & 0x80000000) != 0)     // bi1 negative
+                numbers.Add(new List<uint>());
+                for (int j = 0; j < bi2.dataLength; j++)
                 {
-                    bi1Neg = true; bi1 = -bi1;
-                }
-                if ((bi2.data[lastPos] & 0x80000000) != 0)     // bi2 negative
-                {
-                    bi2Neg = true; bi2 = -bi2;
-                }
-            }
-            catch (Exception) { }
-
-            BigInt result = new BigInt(false);
-
-            // multiply the absolute values
-            try
-            {
-                for (int i = 0; i < bi1.dataLength; i++)
-                {
-                    if (bi1.data[i] == 0) continue;
-
-                    ulong mcarry = 0;
-                    for (int j = 0, k = i; j < bi2.dataLength; j++, k++)
-                    {
-                        // k = i + j
-                        ulong val = ((ulong)bi1.data[i] * (ulong)bi2.data[j]) +
-                                     (ulong)result.data[k] + mcarry;
-
-                        result.data[k] = (uint)(val & 0xFFFFFFFF);
-                        mcarry = (val >> 32);
-                    }
-
-                    if (mcarry != 0)
-                        result.data[i + bi2.dataLength] = (uint)mcarry;
+                    ulong mul = (ulong)bi1.data[i] * (ulong)bi2.data[j];
+                    ulong carry = mul >> 32;
+                    numbers[i].Add((uint)(mul & 0xFFFFFFFF));
+                    numbers[i+1].Add((uint)carry);
                 }
             }
-            catch (Exception)
+            List<uint> result = new List<uint>(numbers.Count);
+            ulong car = 0;
+            foreach (var masnum in numbers)
             {
-                throw (new ArithmeticException("Multiplication overflow."));
-            }
-
-
-            result.dataLength = bi1.dataLength + bi2.dataLength;
-            if (result.dataLength > maxLength)
-                result.dataLength = maxLength;
-
-            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                result.dataLength--;
-
-            // overflow check (result is -ve)
-            if ((result.data[lastPos] & 0x80000000) != 0)
-            {
-                if (bi1Neg != bi2Neg && result.data[lastPos] == 0x80000000)    // different sign
+                ulong sum = car;
+                foreach (var num in masnum)
                 {
-                    // handle the special case where multiplication produces
-                    // a max negative number in 2's complement.
-
-                    if (result.dataLength == 1)
-                        return result;
-                    else
-                    {
-                        bool isMaxNeg = true;
-                        for (int i = 0; i < result.dataLength - 1 && isMaxNeg; i++)
-                        {
-                            if (result.data[i] != 0)
-                                isMaxNeg = false;
-                        }
-
-                        if (isMaxNeg)
-                            return result;
-                    }
+                    sum += num;
                 }
-
-                throw (new ArithmeticException("Multiplication overflow."));
+                car = sum >> 32;
+                result.Add((uint)(sum & 0xFFFFFFFF));
             }
+            if (car != 0)
+                result.Add((uint)car);
 
-            // if input has different signs, then result is -ve
-            if (bi1Neg != bi2Neg)
-                return -result;
-
-            return result;
+            return new BigInt(result);
         }
         public static BigInt operator <<(BigInt bi1, int shiftVal)
         {
