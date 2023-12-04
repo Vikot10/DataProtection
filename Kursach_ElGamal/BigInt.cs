@@ -5,7 +5,7 @@ namespace Kursach_ElGamal
     {
         private uint[] data = null;
         public int dataLength;
-        private const int maxLength = 20;
+        private const int maxLength = 50;
         Random rand = new Random();
 
         public static readonly int[] primesNumbers = {
@@ -50,47 +50,39 @@ namespace Kursach_ElGamal
         }
         public BigInt(ulong value)
         {
-            data = new uint[maxLength];
-
-            // copy bytes from ulong to BigInteger without any assumption of
-            // the length of the ulong datatype
-            dataLength = 0;
-            while (value != 0 && dataLength < maxLength)
+            InitData();
+            if (value != 0)
+                dataLength = 0;
+            while (value != 0)
             {
                 data[dataLength] = (uint)(value & 0xFFFFFFFF);
                 value >>= 32;
                 dataLength++;
             }
-
-            if (value != 0 || (data[maxLength - 1] & 0x80000000) != 0)
-                throw (new ArithmeticException("Positive overflow in constructor."));
-
-            if (dataLength == 0)
-                dataLength = 1;
         }
         public BigInt(uint[] inData)
         {
             dataLength = inData.Length;
-
-            if (dataLength > maxLength)
-                throw (new ArithmeticException("Byte overflow in constructor."));
 
             data = new uint[maxLength];
 
             for (int i = dataLength - 1, j = 0; i >= 0; i--, j++)
                 data[j] = inData[i];
 
-            while (dataLength > 1 && data[dataLength - 1] == 0)
-                dataLength--;
-        }
-        private void GeneratePrimeNumber()
-        {
+            //while (dataLength > 1 && data[dataLength - 1] == 0)
+            //    dataLength--;
+            EqualizeLenght(this);
         }
 
         public void InitData()
         {
             data = new uint[maxLength];
             dataLength = 1;
+        }
+        private static void EqualizeLenght(BigInt v)
+        {
+            while (v.dataLength > 1 && v.data[v.dataLength - 1] == 0)
+                v.dataLength--;
         }
         public void GenRandomArrayUint(int length = 50, uint maxValue = 0)
         {
@@ -163,17 +155,7 @@ namespace Kursach_ElGamal
                 result.dataLength++;
             }
 
-            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                result.dataLength--;
-
-
-            // overflow check
-            int lastPos = maxLength - 1;
-            if ((bi1.data[lastPos] & 0x80000000) == (bi2.data[lastPos] & 0x80000000) &&
-               (result.data[lastPos] & 0x80000000) != (bi1.data[lastPos] & 0x80000000))
-            {
-                throw (new ArithmeticException());
-            }
+            EqualizeLenght(result);
 
             return result;
         }
@@ -199,20 +181,9 @@ namespace Kursach_ElGamal
                 result.dataLength = index;
             else
             {
-                while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                    result.dataLength--;
-            }
-
-            // overflow check
-            int lastPos = maxLength - 1;
-
-            // overflow if initial value was +ve but ++ caused a sign
-            // change to negative.
-
-            if ((bi1.data[lastPos] & 0x80000000) == 0 &&
-               (result.data[lastPos] & 0x80000000) != (bi1.data[lastPos] & 0x80000000))
-            {
-                throw (new ArithmeticException("Overflow in ++."));
+                //while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
+                //    result.dataLength--;
+                EqualizeLenght(result);
             }
             return result;
         }

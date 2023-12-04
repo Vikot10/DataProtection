@@ -21,39 +21,6 @@ namespace Lab6_WeakElGamal
          661,  673,  677,  683,  691,  701,  709,  719,  727,  733,  739,  743,  751,  757,  761,  769,  773,  787,  797,  809,
          811,  821,  823,  827,  829,  839,  853,  857,  859,  863,  877,  881,  883,  887,  907,  911,  919,  929,  937,  941,
          947,  953,  967,  971,  977,  983,  991,  997, 1009};
-        public static string ConvertTextToBits(string text)
-        {
-            byte[] byteArray = Encoding.ASCII.GetBytes(text);
-
-            return ConvertArrayByteToBits(byteArray);
-        }
-
-        public static string ConvertBitsToText(string textBits)
-        {
-            StringBuilder textBuilder = new StringBuilder();
-
-            for (int i = 0; i < textBits.Length; i += 8)
-            {
-                string binary = textBits.Substring(i, 8);
-                int decimalValue = Convert.ToInt32(binary, 2);
-                char character = Convert.ToChar(decimalValue);
-                textBuilder.Append(character);
-            }
-
-            return textBuilder.ToString();
-        }
-
-        public static string ConvertArrayByteToBits(byte[] byteArray)
-        {
-            StringBuilder binarySequence = new StringBuilder();
-            foreach (byte b in byteArray)
-            {
-                string binaryString = Convert.ToString(b, 2).PadLeft(8, '0');
-                binarySequence.Append(binaryString);
-            }
-
-            return binarySequence.ToString();
-        }
 
         public static bool IsPrime(uint number)
         {
