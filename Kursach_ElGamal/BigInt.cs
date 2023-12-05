@@ -229,108 +229,27 @@ namespace Kursach_ElGamal
 
             return new BigInt(result);
         }
-        public static BigInt operator <<(BigInt bi1, int shiftVal)
+        
+        public static BigInt operator >>(BigInt b, int shiftVal)
         {
-            BigInt result = new BigInt(true,bi1);
-            result.dataLength = shiftLeft(result.data, shiftVal);
+            int skipBlock = shiftVal / 32;
+            int shiftAmount = shiftVal % 32;
+            int lenght = b.dataLength - skipBlock;
+
+            List<uint> tmp = new List<uint>(lenght);
+            uint carry = 0;
+            for (int i=0;i< lenght; i++)
+            {
+                uint cur = b.data[b.dataLength - i] >> shiftAmount;
+                cur |= carry;
+                tmp.Add(cur);
+                carry = cur << (32 - shiftAmount);
+            }
+            tmp.Reverse();
+            BigInt result = new BigInt(tmp);
 
             return result;
-        }
-        private static int shiftLeft(uint[] buffer, int shiftVal)
-        {
-            int shiftAmount = 32;
-            int bufLen = buffer.Length;
-
-            while (bufLen > 1 && buffer[bufLen - 1] == 0)
-                bufLen--;
-
-            for (int count = shiftVal; count > 0;)
-            {
-                if (count < shiftAmount)
-                    shiftAmount = count;
-
-                ulong carry = 0;
-                for (int i = 0; i < bufLen; i++)
-                {
-                    ulong val = ((ulong)buffer[i]) << shiftAmount;
-                    val |= carry;
-
-                    buffer[i] = (uint)(val & 0xFFFFFFFF);
-                    carry = val >> 32;
-                }
-
-                if (carry != 0)
-                {
-                    if (bufLen + 1 <= buffer.Length)
-                    {
-                        buffer[bufLen] = (uint)carry;
-                        bufLen++;
-                    }
-                }
-                count -= shiftAmount;
-            }
-            return bufLen;
-        }
-        public static BigInt operator >>(BigInt bi1, int shiftVal)
-        {
-            BigInt result = new BigInt(true,bi1);
-            result.dataLength = shiftRight(result.data, shiftVal);
-
-
-            if ((bi1.data[maxLength - 1] & 0x80000000) != 0) // negative
-            {
-                for (int i = maxLength - 1; i >= result.dataLength; i--)
-                    result.data[i] = 0xFFFFFFFF;
-
-                uint mask = 0x80000000;
-                for (int i = 0; i < 32; i++)
-                {
-                    if ((result.data[result.dataLength - 1] & mask) != 0)
-                        break;
-
-                    result.data[result.dataLength - 1] |= mask;
-                    mask >>= 1;
-                }
-                result.dataLength = maxLength;
-            }
-
-            return result;
-        }
-        private static int shiftRight(uint[] buffer, int shiftVal)
-        {
-            int shiftAmount = 32;
-            int invShift = 0;
-            int bufLen = buffer.Length;
-
-            while (bufLen > 1 && buffer[bufLen - 1] == 0)
-                bufLen--;
-
-            for (int count = shiftVal; count > 0;)
-            {
-                if (count < shiftAmount)
-                {
-                    shiftAmount = count;
-                    invShift = 32 - shiftAmount;
-                }
-
-                ulong carry = 0;
-                for (int i = bufLen - 1; i >= 0; i--)
-                {
-                    ulong val = ((ulong)buffer[i]) >> shiftAmount;
-                    val |= carry;
-
-                    carry = (((ulong)buffer[i]) << invShift) & 0xFFFFFFFF;
-                    buffer[i] = (uint)(val);
-                }
-
-                count -= shiftAmount;
-            }
-
-            while (bufLen > 1 && buffer[bufLen - 1] == 0)
-                bufLen--;
-
-            return bufLen;
-        }
+        }       
         public static BigInt operator ~(BigInt bi1)
         {
             BigInt result = new BigInt(true,bi1);
@@ -411,17 +330,13 @@ namespace Kursach_ElGamal
         }
         public static bool operator >(BigInt bi1, BigInt bi2)
         {
-            int pos = maxLength - 1;
-
-            // bi1 is negative, bi2 is positive
-            if ((bi1.data[pos] & 0x80000000) != 0 && (bi2.data[pos] & 0x80000000) == 0)
+            if (bi1.dataLength > bi2.dataLength)
+                return true;
+            else if (bi2.dataLength > bi1.dataLength)
                 return false;
 
-            // bi1 is positive, bi2 is negative
-            else if ((bi1.data[pos] & 0x80000000) == 0 && (bi2.data[pos] & 0x80000000) != 0)
-                return true;
+            int pos;
 
-            // same sign
             int len = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength;
             for (pos = len - 1; pos >= 0 && bi1.data[pos] == bi2.data[pos]; pos--) ;
 
@@ -435,23 +350,19 @@ namespace Kursach_ElGamal
         }
         public static bool operator <(BigInt bi1, BigInt bi2)
         {
-            int pos = maxLength - 1;
-
-            // bi1 is negative, bi2 is positive
-            if ((bi1.data[pos] & 0x80000000) != 0 && (bi2.data[pos] & 0x80000000) == 0)
+            if (bi2.dataLength > bi1.dataLength)
                 return true;
-
-            // bi1 is positive, bi2 is negative
-            else if ((bi1.data[pos] & 0x80000000) == 0 && (bi2.data[pos] & 0x80000000) != 0)
+            else if (bi1.dataLength > bi2.dataLength)
                 return false;
 
-            // same sign
-            int len = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength;
+            int pos;
+
+            int len = (bi2.dataLength > bi1.dataLength) ? bi2.dataLength : bi1.dataLength;
             for (pos = len - 1; pos >= 0 && bi1.data[pos] == bi2.data[pos]; pos--) ;
 
             if (pos >= 0)
             {
-                if (bi1.data[pos] < bi2.data[pos])
+                if (bi2.data[pos] > bi1.data[pos])
                     return true;
                 return false;
             }
@@ -465,226 +376,14 @@ namespace Kursach_ElGamal
         {
             return (bi1 == bi2 || bi1 < bi2);
         }
-        private static void multiByteDivide(BigInt bi1, BigInt bi2,
-                                    BigInt outQuotient, BigInt outRemainder)
-        {
-            uint[] result = new uint[maxLength];
 
-            int remainderLen = bi1.dataLength + 1;
-            uint[] remainder = new uint[remainderLen];
-
-            uint mask = 0x80000000;
-            uint val = bi2.data[bi2.dataLength - 1];
-            int shift = 0, resultPos = 0;
-
-            while (mask != 0 && (val & mask) == 0)
-            {
-                shift++; mask >>= 1;
-            }
-
-            for (int i = 0; i < bi1.dataLength; i++)
-                remainder[i] = bi1.data[i];
-            shiftLeft(remainder, shift);
-            bi2 = bi2 << shift;
-
-            int j = remainderLen - bi2.dataLength;
-            int pos = remainderLen - 1;
-
-            ulong firstDivisorByte = bi2.data[bi2.dataLength - 1];
-            ulong secondDivisorByte = bi2.data[bi2.dataLength - 2];
-
-            int divisorLen = bi2.dataLength + 1;
-            uint[] dividendPart = new uint[divisorLen];
-
-            while (j > 0)
-            {
-                ulong dividend = ((ulong)remainder[pos] << 32) + (ulong)remainder[pos - 1];
-
-                ulong q_hat = dividend / firstDivisorByte;
-                ulong r_hat = dividend % firstDivisorByte;
-
-                bool done = false;
-                while (!done)
-                {
-                    done = true;
-
-                    if (q_hat == 0x100000000 ||
-                       (q_hat * secondDivisorByte) > ((r_hat << 32) + remainder[pos - 2]))
-                    {
-                        q_hat--;
-                        r_hat += firstDivisorByte;
-
-                        if (r_hat < 0x100000000)
-                            done = false;
-                    }
-                }
-
-                for (int h = 0; h < divisorLen; h++)
-                    dividendPart[h] = remainder[pos - h];
-
-                BigInt kk = new BigInt(dividendPart);
-                BigInt ss = new BigInt(true,bi2 * new BigInt(q_hat));
-
-                while (ss > kk)
-                {
-                    q_hat--;
-                    ss -= bi2;
-                }
-                BigInt yy = kk - ss;
-
-                for (int h = 0; h < divisorLen; h++)
-                    remainder[pos - h] = yy.data[bi2.dataLength - h];
-
-                result[resultPos++] = (uint)q_hat;
-
-                pos--;
-                j--;
-            }
-
-            outQuotient.dataLength = resultPos;
-            int y = 0;
-            for (int x = outQuotient.dataLength - 1; x >= 0; x--, y++)
-                outQuotient.data[y] = result[x];
-            for (; y < maxLength; y++)
-                outQuotient.data[y] = 0;
-
-            while (outQuotient.dataLength > 1 && outQuotient.data[outQuotient.dataLength - 1] == 0)
-                outQuotient.dataLength--;
-
-            if (outQuotient.dataLength == 0)
-                outQuotient.dataLength = 1;
-
-            outRemainder.dataLength = shiftRight(remainder, shift);
-
-            for (y = 0; y < outRemainder.dataLength; y++)
-                outRemainder.data[y] = remainder[y];
-            for (; y < maxLength; y++)
-                outRemainder.data[y] = 0;
-        }
-
-        private static void singleByteDivide(BigInt bi1, BigInt bi2,
-                                             BigInt outQuotient, BigInt outRemainder)
-        {
-            uint[] result = new uint[maxLength];
-            int resultPos = 0;
-
-            // copy dividend to reminder
-            for (int i = 0; i < maxLength; i++)
-                outRemainder.data[i] = bi1.data[i];
-            outRemainder.dataLength = bi1.dataLength;
-
-            while (outRemainder.dataLength > 1 && outRemainder.data[outRemainder.dataLength - 1] == 0)
-                outRemainder.dataLength--;
-
-            ulong divisor = (ulong)bi2.data[0];
-            int pos = outRemainder.dataLength - 1;
-            ulong dividend = (ulong)outRemainder.data[pos];
-
-            if (dividend >= divisor)
-            {
-                ulong quotient = dividend / divisor;
-                result[resultPos++] = (uint)quotient;
-
-                outRemainder.data[pos] = (uint)(dividend % divisor);
-            }
-            pos--;
-
-            while (pos >= 0)
-            {
-                dividend = ((ulong)outRemainder.data[pos + 1] << 32) + (ulong)outRemainder.data[pos];
-                ulong quotient = dividend / divisor;
-                result[resultPos++] = (uint)quotient;
-
-                outRemainder.data[pos + 1] = 0;
-                outRemainder.data[pos--] = (uint)(dividend % divisor);
-            }
-
-            outQuotient.dataLength = resultPos;
-            int j = 0;
-            for (int i = outQuotient.dataLength - 1; i >= 0; i--, j++)
-                outQuotient.data[j] = result[i];
-            for (; j < maxLength; j++)
-                outQuotient.data[j] = 0;
-
-            while (outQuotient.dataLength > 1 && outQuotient.data[outQuotient.dataLength - 1] == 0)
-                outQuotient.dataLength--;
-
-            if (outQuotient.dataLength == 0)
-                outQuotient.dataLength = 1;
-
-            while (outRemainder.dataLength > 1 && outRemainder.data[outRemainder.dataLength - 1] == 0)
-                outRemainder.dataLength--;
-        }
         public static BigInt operator /(BigInt bi1, BigInt bi2)
         {
-            BigInt quotient = new BigInt(false);
-            BigInt remainder = new BigInt(false);
-
-            int lastPos = maxLength - 1;
-            bool divisorNeg = false, dividendNeg = false;
-
-            if ((bi1.data[lastPos] & 0x80000000) != 0)     // bi1 negative
-            {
-                bi1 = -bi1;
-                dividendNeg = true;
-            }
-            if ((bi2.data[lastPos] & 0x80000000) != 0)     // bi2 negative
-            {
-                bi2 = -bi2;
-                divisorNeg = true;
-            }
-
-            if (bi1 < bi2)
-            {
-                return quotient;
-            }
-
-            else
-            {
-                if (bi2.dataLength == 1)
-                    singleByteDivide(bi1, bi2, quotient, remainder);
-                else
-                    multiByteDivide(bi1, bi2, quotient, remainder);
-
-                if (dividendNeg != divisorNeg)
-                    return -quotient;
-
-                return quotient;
-            }
+            
         }
         public static BigInt operator %(BigInt bi1, BigInt bi2)
         {
-            BigInt quotient = new BigInt(false);
-            BigInt remainder = new BigInt(true,bi1);
-
-            int lastPos = maxLength - 1;
-            bool dividendNeg = false;
-
-            if ((bi1.data[lastPos] & 0x80000000) != 0)     // bi1 negative
-            {
-                bi1 = -bi1;
-                dividendNeg = true;
-            }
-            if ((bi2.data[lastPos] & 0x80000000) != 0)     // bi2 negative
-                bi2 = -bi2;
-
-            if (bi1 < bi2)
-            {
-                return remainder;
-            }
-
-            else
-            {
-                if (bi2.dataLength == 1)
-                    singleByteDivide(bi1, bi2, quotient, remainder);
-                else
-                    multiByteDivide(bi1, bi2, quotient, remainder);
-
-                if (dividendNeg)
-                    return -remainder;
-
-                return remainder;
-            }
+            
         }
     }
 }
