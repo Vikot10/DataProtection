@@ -1,6 +1,8 @@
 ﻿
+using System.Diagnostics;
 using System.Diagnostics.SymbolStore;
 using System.Drawing;
+using System.Globalization;
 
 namespace Kursach_ElGamal
 {
@@ -23,6 +25,123 @@ namespace Kursach_ElGamal
          811,  821,  823,  827,  829,  839,  853,  857,  859,  863,  877,  881,  883,  887,  907,  911,  919,  929,  937,  941,
          947,  953,  967,  971,  977,  983,  991,  997, 1009};
 
+        public byte[] ToByteArray()
+        {
+            var tmp = new byte[dataLength * 4];
+            for (int i = 0; i < dataLength; i++)
+            {
+                int index = 0;
+                foreach (byte b in BitConverter.GetBytes(data[i]))
+                {
+                    tmp[i * 4 + index] = b;
+                    index++;
+                }
+            }
+            return tmp;
+        }
+        public override string ToString()
+        {
+            var info = NumberFormatInfo.CurrentInfo;
+            string format = null;
+            var _bits = data;
+            int digits = -1;
+            char fmt = 'R';
+
+            bool decimalFmt = (fmt == 'g' || fmt == 'G' || fmt == 'd' || fmt == 'D' || fmt == 'r' || fmt == 'R');
+
+            // First convert to base 10^9.
+            const uint kuBase = 1000000000; // 10^9
+            const int kcchBase = 9;
+
+            int cuSrc = _bits.Length;
+            int cuMax;
+            try
+            {
+                cuMax = checked(cuSrc * 10 / 9 + 2);
+            }
+            catch (OverflowException e) { throw new FormatException("Format_TooLarge", e); }
+            uint[] rguDst = new uint[cuMax];
+            int cuDst = 0;
+
+            for (int iuSrc = cuSrc; --iuSrc >= 0;)
+            {
+                uint uCarry = _bits[iuSrc];
+                for (int iuDst = 0; iuDst < cuDst; iuDst++)
+                {
+                    Debug.Assert(rguDst[iuDst] < kuBase);
+                    ulong uuRes = ((ulong)rguDst[iuDst] << 32) | uCarry;
+                    rguDst[iuDst] = (uint)(uuRes % kuBase);
+                    uCarry = (uint)(uuRes / kuBase);
+                }
+                if (uCarry != 0)
+                {
+                    rguDst[cuDst++] = uCarry % kuBase;
+                    uCarry /= kuBase;
+                    if (uCarry != 0)
+                        rguDst[cuDst++] = uCarry;
+                }
+            }
+
+            int cchMax;
+            try
+            {
+                // Each uint contributes at most 9 digits to the decimal representation.
+                cchMax = checked(cuDst * kcchBase);
+            }
+            catch (OverflowException e) { throw new FormatException("Format_TooLarge", e); }
+
+            if (decimalFmt)
+            {
+                if (digits > 0 && digits > cchMax)
+                    cchMax = digits;
+            }
+
+            int rgchBufSize;
+
+            try
+            {
+                // We'll pass the rgch buffer to native code, which is going to treat it like a string of digits, so it needs
+                // to be null terminated.  Let's ensure that we can allocate a buffer of that size.
+                rgchBufSize = checked(cchMax + 1);
+            }
+            catch (OverflowException e) { throw new FormatException("Format_TooLarge", e); }
+
+            char[] rgch = new char[rgchBufSize];
+
+            int ichDst = cchMax;
+
+            for (int iuDst = 0; iuDst < cuDst - 1; iuDst++)
+            {
+                uint uDig = rguDst[iuDst];
+                Debug.Assert(uDig < kuBase);
+                for (int cch = kcchBase; --cch >= 0;)
+                {
+                    rgch[--ichDst] = (char)('0' + uDig % 10);
+                    uDig /= 10;
+                }
+            }
+            for (uint uDig = rguDst[cuDst - 1]; uDig != 0;)
+            {
+                rgch[--ichDst] = (char)('0' + uDig % 10);
+                uDig /= 10;
+            }
+
+            // Format Round-trip decimal
+            // This format is supported for integral types only. The number is converted to a string of
+            // decimal digits (0-9), prefixed by a minus sign if the number is negative. The precision
+            // specifier indicates the minimum number of digits desired in the resulting string. If required,
+            // the number is padded with zeros to its left to produce the number of digits given by the
+            // precision specifier.
+            int numDigitsPrinted = cchMax - ichDst;
+            while (digits > 0 && digits > numDigitsPrinted)
+            {
+                // pad leading zeros
+                rgch[--ichDst] = '0';
+                digits--;
+            }
+            return new string(rgch, ichDst, cchMax - ichDst);
+        }
+
         public BigInt(bool isPrime) // контсруктор для простых чисел
         {
             InitData();
@@ -38,7 +157,7 @@ namespace Kursach_ElGamal
                 }
             }
         }
-        public BigInt(bool isClone,BigInt value) // конструктор копирования и для чисел с максимальным значением
+        public BigInt(bool isClone, BigInt value) // конструктор копирования и для чисел с максимальным значением
         {
             InitData();
             if (isClone)
@@ -49,7 +168,7 @@ namespace Kursach_ElGamal
             }
             else
             {
-                GenRandomArrayUint(value.dataLength-1, value.data[dataLength - 1]);
+                GenRandomArrayUint(value.dataLength - 1, value.data[dataLength - 1]);
             }
         }
         public BigInt(ulong value)
@@ -169,11 +288,11 @@ namespace Kursach_ElGamal
         {
             uint[] d1, d2;
             bool sign = true;
-            if (bi1 > bi2) 
-            { 
+            if (bi1 > bi2)
+            {
                 d1 = new uint[bi1.dataLength];
                 d2 = new uint[bi2.dataLength];
-                for(int i=0;i<bi1.dataLength;i++)
+                for (int i = 0; i < bi1.dataLength; i++)
                 {
                     d1[i] = bi1.data[i];
                 }
@@ -199,21 +318,21 @@ namespace Kursach_ElGamal
 
             List<uint> result = new List<uint>();
             uint carry = 0;
-            ulong mu = 0b_10_000_000_000_000_000_000_000_000_000_000;
+            ulong mu = 1;
 
-            for (int i = 0;i < d2.Length;i++)
+            for (int i = 0; i < d2.Length; i++)
             {
                 long tmp = 0;
-                tmp = d1[i] - d2[i]-carry;
-                if(tmp>0)
+                tmp = d1[i] - d2[i] - carry;
+                if (tmp > 0)
                 {
                     result.Add((uint)tmp);
                     carry = 0;
                 }
                 else
                 {
-                    ulong dt = mu | d1[i];
-                    dt -= (d2[i]+carry);
+                    ulong dt = (mu << 32) | d1[i];
+                    dt -= (d2[i] + carry);
                     result.Add((uint)dt);
                     carry = 1;
                 }
@@ -239,7 +358,7 @@ namespace Kursach_ElGamal
                     ulong mul = (ulong)bi1.data[i] * (ulong)bi2.data[j];
                     ulong carry = mul >> 32;
                     numbers[i].Add((uint)(mul & 0xFFFFFFFF));
-                    numbers[i+1].Add((uint)carry);
+                    numbers[i + 1].Add((uint)carry);
                 }
             }
             List<uint> result = new List<uint>(numbers.Count);
@@ -259,7 +378,7 @@ namespace Kursach_ElGamal
 
             return new BigInt(result);
         }
-        
+
         public static BigInt operator >>(BigInt b, int shiftVal)
         {
             int skipBlock = shiftVal / 32;
@@ -268,7 +387,7 @@ namespace Kursach_ElGamal
 
             List<uint> tmp = new List<uint>(lenght);
             uint carry = 0;
-            for (int i=0;i< lenght; i++)
+            for (int i = 0; i < lenght; i++)
             {
                 uint cur = b.data[b.dataLength - i] >> shiftAmount;
                 cur |= carry;
@@ -279,10 +398,10 @@ namespace Kursach_ElGamal
             BigInt result = new BigInt(tmp);
 
             return result;
-        }       
+        }
         public static BigInt operator ~(BigInt bi1)
         {
-            BigInt result = new BigInt(true,bi1);
+            BigInt result = new BigInt(true, bi1);
 
             for (int i = 0; i < maxLength; i++)
                 result.data[i] = (uint)(~(bi1.data[i]));
@@ -302,7 +421,7 @@ namespace Kursach_ElGamal
             if (bi1.dataLength == 1 && bi1.data[0] == 0)
                 return (new BigInt(false));
 
-            BigInt result = new BigInt(true,bi1);
+            BigInt result = new BigInt(true, bi1);
 
             // 1's complement
             for (int i = 0; i < maxLength; i++)
@@ -407,17 +526,22 @@ namespace Kursach_ElGamal
             return (bi1 == bi2 || bi1 < bi2);
         }
 
-        //public static BigInt operator /(BigInt bi1, BigInt bi2)
-        //{
+        public static BigInt operator /(BigInt bi1, BigInt bi2)
+        {
 
-        //}
+        }
+
+        public (BigInt, BigInt) Divide(BigInt a, BigInt b)
+        {
+            if (a < b)
+                return (new BigInt(false), a);
+
+
+        }
+
         //public static BigInt operator %(BigInt bi1, BigInt bi2)
         //{
 
         //}
-        public override string ToString()
-        {
-            return 
-        }           
     }
 }
