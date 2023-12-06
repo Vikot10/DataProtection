@@ -1,4 +1,5 @@
 ﻿
+using System.Diagnostics.SymbolStore;
 using System.Drawing;
 
 namespace Kursach_ElGamal
@@ -6,6 +7,7 @@ namespace Kursach_ElGamal
     public class BigInt
     {
         private uint[] data = null;
+        public bool sign = true;
         public int dataLength;
         private const int maxLength = 50;
         Random rand = new Random();
@@ -124,24 +126,24 @@ namespace Kursach_ElGamal
         }
         public bool IsPrime()
         {
-            BigInt thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
-                thisVal = -this;
-            else
-                thisVal = this;
+            //BigInt thisVal;
+            //if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            //    thisVal = -this;
+            //else
+            //    thisVal = this;
 
-            // test for divisibility by primes < 2000
-            for (int p = 0; p < primesNumbers.Length; p++)
-            {
-                BigInt divisor = new BigInt((ulong)primesNumbers[p]);
+            //// test for divisibility by primes < 2000
+            //for (int p = 0; p < primesNumbers.Length; p++)
+            //{
+            //    BigInt divisor = new BigInt((ulong)primesNumbers[p]);
 
-                if (divisor >= thisVal)
-                    break;
+            //    if (divisor >= thisVal)
+            //        break;
 
-                BigInt resultNum = thisVal % divisor;
-                if (resultNum.IntValue() == 0)
-                    return false;
-            }
+            //    BigInt resultNum = thisVal % divisor;
+            //    if (resultNum.IntValue() == 0)
+            //        return false;
+            //}
             return true;
         }
         public static BigInt operator +(BigInt bi1, BigInt bi2)
@@ -165,34 +167,62 @@ namespace Kursach_ElGamal
         }
         public static BigInt operator -(BigInt bi1, BigInt bi2)
         {
-            BigInt result = new BigInt(false)
+            uint[] d1, d2;
+            bool sign = true;
+            if (bi1 > bi2) 
+            { 
+                d1 = new uint[bi1.dataLength];
+                d2 = new uint[bi2.dataLength];
+                for(int i=0;i<bi1.dataLength;i++)
+                {
+                    d1[i] = bi1.data[i];
+                }
+                for (int i = 0; i < bi2.dataLength; i++)
+                {
+                    d2[i] = bi2.data[i];
+                }
+            }
+            else
             {
-                dataLength = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength
-            };
+                sign = false;
+                d1 = new uint[bi2.dataLength];
+                d2 = new uint[bi1.dataLength];
+                for (int i = 0; i < bi2.dataLength; i++)
+                {
+                    d1[i] = bi2.data[i];
+                }
+                for (int i = 0; i < bi1.dataLength; i++)
+                {
+                    d2[i] = bi1.data[i];
+                }
+            }
 
-            long carryIn = 0;
-            for (int i = 0; i < result.dataLength; i++)
+            List<uint> result = new List<uint>();
+            uint carry = 0;
+            ulong mu = 0b_10_000_000_000_000_000_000_000_000_000_000;
+
+            for (int i = 0;i < d2.Length;i++)
             {
-                long diff;
-
-                diff = (long)bi1.data[i] - (long)bi2.data[i] - carryIn;
-                result.data[i] = (uint)(diff & 0xFFFFFFFF);
-
-                if (diff < 0)
-                    carryIn = 1;
+                long tmp = 0;
+                tmp = d1[i] - d2[i]-carry;
+                if(tmp>0)
+                {
+                    result.Add((uint)tmp);
+                    carry = 0;
+                }
                 else
-                    carryIn = 0;
+                {
+                    ulong dt = mu | d1[i];
+                    dt -= (d2[i]+carry);
+                    result.Add((uint)dt);
+                    carry = 1;
+                }
             }
 
-            if (carryIn != 0)
+            return new BigInt(result)
             {
-                for (int i = result.dataLength; i < maxLength; i++)
-                    result.data[i] = 0xFFFFFFFF;
-                result.dataLength = maxLength;
-            }
-
-            EqualizeLenght(result);
-            return result;
+                sign = sign
+            };
         }
         public static BigInt operator *(BigInt bi1, BigInt bi2)
         {
@@ -377,13 +407,17 @@ namespace Kursach_ElGamal
             return (bi1 == bi2 || bi1 < bi2);
         }
 
-        public static BigInt operator /(BigInt bi1, BigInt bi2)
+        //public static BigInt operator /(BigInt bi1, BigInt bi2)
+        //{
+
+        //}
+        //public static BigInt operator %(BigInt bi1, BigInt bi2)
+        //{
+
+        //}
+        public override string ToString()
         {
-            
-        }
-        public static BigInt operator %(BigInt bi1, BigInt bi2)
-        {
-            
-        }
+            return 
+        }           
     }
 }
