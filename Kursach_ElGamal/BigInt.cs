@@ -202,7 +202,7 @@ namespace Kursach_ElGamal
 
             data = new uint[dataLength];
 
-            for (int j = 0; j < dataLength; j--)
+            for (int j = 0; j < dataLength; j++)
                 data[j] = nums[j];
         }
         public void InitData()
@@ -281,8 +281,9 @@ namespace Kursach_ElGamal
                 carry = sum >> 32;
                 numbers.Add((uint)(sum & 0xFFFFFFFF));
             }
-
-            return new BigInt(numbers);
+            var res = new BigInt(numbers);
+            EqualizeLenght(res);
+            return res;
         }
         public static BigInt operator -(BigInt bi1, BigInt bi2)
         {
@@ -338,30 +339,34 @@ namespace Kursach_ElGamal
                 }
             }
 
-            return new BigInt(result)
+            var res = new BigInt(result)
             {
                 sign = sign
             };
+            EqualizeLenght(res);
+
+            return res;
         }
         public static BigInt operator *(BigInt bi1, BigInt bi2)
         {
-            int lenght = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength;
-
-            List<List<uint>> numbers = new List<List<uint>>(lenght);
-            numbers.Add(new List<uint>());
+            int lenght = bi1.dataLength + bi2.dataLength + 1;
+            List<uint>[] numbers = new List<uint>[lenght];
+            for (int i = 0; i < lenght; i++)
+            {
+                numbers[i] = new List<uint>();
+            }
 
             for (int i = 0; i < bi1.dataLength; i++)
             {
-                numbers.Add(new List<uint>());
                 for (int j = 0; j < bi2.dataLength; j++)
                 {
                     ulong mul = (ulong)bi1.data[i] * (ulong)bi2.data[j];
                     ulong carry = mul >> 32;
-                    numbers[i].Add((uint)(mul & 0xFFFFFFFF));
-                    numbers[i + 1].Add((uint)carry);
+                    numbers[j + i].Add((uint)(mul & 0xFFFFFFFF));
+                    numbers[j + i + 1].Add((uint)carry);
                 }
             }
-            List<uint> result = new List<uint>(numbers.Count);
+            List<uint> result = new List<uint>(numbers.Length);
             ulong car = 0;
             foreach (var masnum in numbers)
             {
@@ -376,7 +381,9 @@ namespace Kursach_ElGamal
             if (car != 0)
                 result.Add((uint)car);
 
-            return new BigInt(result);
+            var res = new BigInt(result);
+            EqualizeLenght(res);
+            return res;
         }
 
         public static BigInt operator >>(BigInt b, int shiftVal)
@@ -386,17 +393,23 @@ namespace Kursach_ElGamal
             int lenght = b.dataLength - skipBlock;
 
             List<uint> tmp = new List<uint>(lenght);
-            uint carry = 0;
+
+            uint[] newData = new uint[lenght];
             for (int i = 0; i < lenght; i++)
             {
-                uint cur = b.data[b.dataLength - i] >> shiftAmount;
+                newData[i] = b.data[i + skipBlock];
+            }
+            uint carry = 0;
+            for (int i = lenght - 1; i >= 0; i--)
+            {
+                uint cur = newData[i] >> shiftAmount;
                 cur |= carry;
                 tmp.Add(cur);
-                carry = cur << (32 - shiftAmount);
+                carry = newData[i] << (32 - shiftAmount);
             }
             tmp.Reverse();
             BigInt result = new BigInt(tmp);
-
+            EqualizeLenght(result);
             return result;
         }
         public static BigInt operator ~(BigInt bi1)
@@ -525,19 +538,140 @@ namespace Kursach_ElGamal
         {
             return (bi1 == bi2 || bi1 < bi2);
         }
-
-        public static BigInt operator /(BigInt bi1, BigInt bi2)
+        private int GetBits()
         {
-
+            int shiftBlocks = 0, shiftBits = 0;
+            while (data[dataLength - shiftBlocks] == 0)
+            {
+                shiftBlocks++;
+            }
+            while ((data[dataLength - shiftBlocks] >> shiftBits) != 0)
+            {
+                shiftBits++;
+            }
+            return (dataLength - shiftBlocks) * 32 - (32 - shiftBits);
         }
 
-        public (BigInt, BigInt) Divide(BigInt a, BigInt b)
+        public static BigInt operator /(BigInt a, BigInt b)
         {
             if (a < b)
-                return (new BigInt(false), a);
+                return new BigInt(false);
 
+            int div = a.dataLength - b.dataLength;
+            int shift = 0;
+            BigInt plus = new BigInt(1);
+            BigInt mul = new BigInt(2);
 
+            BigInt x = a >> (div * 32);
+            for (; ; )
+            {
+                if (x > b)
+                    break;
+                shift++;
+                x = a >> (div * 32 - shift);
+            }
+            int leftLenght = div * 32 - shift;
+            uint min = 0;
+            uint max = 2147483650;
+            BigInt res = null;
+            BigInt bb = null;
+            while (min <= max)
+            {
+                uint mid = (min + max) / 2;
+                res = new BigInt(mid);
+                bb = x - (b * res);
+                if (bb.sign == false)
+                {
+                    max = mid - 1;
+                }
+                else
+                {
+                    min = mid + 1;
+                }
+            }
+            if (bb.sign == false)
+            {
+                res = new BigInt(min);
+                bb = x - (b * res);
+                if (bb.sign == false)
+                {
+                    res = new BigInt(max);
+                    bb = x - (b * res);
+                }
+            }
+            BigInt r = null;
+            for (int i = 0; i < leftLenght; i++)
+            {
+                x = a >> (leftLenght - i);
+                for (; ; )
+                {
+                    r = x - (b * res);
+                    BigInt r2 = res + plus;
+                    if (r.sign == true)
+                    {
+                        r = x - (b * r2);
+                        if (r.sign == false)
+                        {
+                            break;
+                        }
+                        var r3 = r2 + new BigInt(100);
+                        r = x - (b * r3);
+                        if (r.sign == true)
+                        {
+                            var r4 = r2 + new BigInt(1000);
+                            r = x - (b * r4);
+                            if (r.sign == true)
+                            {
+                                var r5 = r2 + new BigInt(10000);
+                                r = x - (b * r5);
+                                if (r.sign == true)
+                                {
+                                    var r6 = r2 + new BigInt(100000);
+                                    r = x - (b * r6);
+                                    if (r.sign == true)
+                                    {
+                                        var r7 = r2 + new BigInt(1000000);
+                                        r = x - (b * r7);
+                                        if (r.sign == true)
+                                        {
+                                            var r8 = r2 + new BigInt(10000000);
+                                            r = x - (b * r8);
+                                            if (r.sign == true)
+                                            {
+                                                res = r8;
+                                                continue;
+                                            }
+                                            res = r7;
+                                            continue;
+                                        }
+                                        res = r6;
+                                        continue;
+                                    }
+                                    res = r5;
+                                    continue;
+                                }
+                                res = r4;
+                                continue;
+                            }
+                            res = r3;
+                            continue;
+                        }
+                        res = r2;
+                    }
+                    else
+                    {
+                        res -= plus;
+                    }
+                }
+                res *= mul;
+            }
+            EqualizeLenght(res);
+            return res;
         }
+
+        //public (BigInt, BigInt) Divide(BigInt a, BigInt b)
+        //{
+        //}
 
         //public static BigInt operator %(BigInt bi1, BigInt bi2)
         //{
