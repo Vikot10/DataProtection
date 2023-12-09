@@ -10,46 +10,47 @@ namespace Kursach_ElGamal
 {
     public class Sender
     {
-        public uint p;
-        public uint g;
-        public uint y;
-        public uint k;
-        public uint a;
-        public uint b;
-        public uint message;
+        public BigInt p;
+        public BigInt g;
+        public BigInt y;
+        public BigInt k;
+        public BigInt a;
+        public BigInt b;
+        public BigInt message;
 
-        public void Receive(uint g,uint p,uint y)
+        public void Receive(BigInt g, BigInt p, BigInt y)
         {
             this.g = g;
             this.p = p;
             this.y = y;
         }
-        public uint GenerateMessage()
+        public BigInt GenerateMessage()
         {
-            message = Helpers.GenerateRandomNumber(p - 1);
+            message = new BigInt(false,p);
             return message;
         }
         
-        public uint GenerateK()
+        public BigInt GenerateK()
         {
-            k = Helpers.GenerateRandomNumber(p - 1);
-            while (Helpers.GCD(k, p - 1) != 1)
+            k = new BigInt(false,p);
+            BigInt one = new BigInt(1);
+            while (BigInt.GCD(k, p ) != one)
             {
-                k = Helpers.GenerateRandomNumber(p - 1);
+                k = new BigInt(false, p);
             }
             return k;
         }
-        public uint GenerateA()
+        public BigInt GenerateA()
         {
-            a = Helpers.PowMod(g, k, p);
+            a = BigInt.PowMod(g, k, p);
             return a;
         }
-        public uint GenerateB()
+        public BigInt GenerateB()
         {
-            ulong ms = Helpers.PowMod(y, k, p);
-            ulong mz = Helpers.PowMod(message, 1, p);
-            ulong mc = (ms * mz) % (ulong)p;
-            b = (uint)mc;
+            BigInt ms = BigInt.PowMod(y, k, p);
+            BigInt mz = message%p;
+            BigInt mc = (ms * mz) % p;
+            b = mc;
             return b;
         }
 

@@ -64,7 +64,42 @@ namespace Lab6_WeakElGamal
         }
         public static uint PowMod(uint value, uint exponent, uint modulus)
         {
-            return (uint)barmodpow(value, exponent, modulus);
+            //ulong power = 1;
+            //for (; exponent != 0; exponent >>= 1)
+            //{
+            //    if ((exponent & 1) == 1)
+            //    {
+            //        power = power * value % modulus;
+            //    }
+            //    value = value * value % modulus;
+            //}
+            //return (uint)power;
+            //if (exponent == 0)
+            //{
+            //    return 1;
+            //}
+            //var x = PowMod(value, exponent/2, modulus);
+            //x = x * x % modulus;
+            //if (x % 2 == 1)
+            //{
+            //    x = x * value % modulus;
+            //}
+            //return x;
+
+            //ulong Result = 1;
+            //ulong bas = value % modulus;
+
+            //while (exponent > 0)
+            //{
+            //    if ((exponent & 1) == 1)
+            //    {
+            //        Result = (Result * bas) % modulus;
+            //    }
+            //    bas = (bas * bas) % modulus;
+            //    exponent >>= 1;
+            //}
+            //return (uint)Result;
+            return barmodpow(value, exponent, modulus);
         }
         static uint barmodpow(uint B, uint X, uint M)
         {

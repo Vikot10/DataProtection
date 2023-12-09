@@ -8,6 +8,7 @@ namespace Kursach_ElGamal
         }
         Receiver _receiver = new Receiver();
         Sender _sender = new Sender();
+        BigInt zero = new BigInt(0);
 
         private void button1_Click(object sender, EventArgs e)
         {
@@ -16,7 +17,7 @@ namespace Kursach_ElGamal
 
         private void button3_Click(object sender, EventArgs e)
         {
-            if (_receiver.p == 0)
+            if (_receiver.p == zero)
             {
                 MessageBox.Show("Сгенерируйте P");
                 return;
@@ -26,7 +27,7 @@ namespace Kursach_ElGamal
 
         private void button2_Click(object sender, EventArgs e)
         {
-            if (_receiver.p == 0)
+            if (_receiver.p == zero)
             {
                 MessageBox.Show("Сгенерируйте P");
                 return;
@@ -36,7 +37,7 @@ namespace Kursach_ElGamal
 
         private void button4_Click(object sender, EventArgs e)
         {
-            if (_receiver.p == 0 || _receiver.g == 0 || _receiver.x == 0)
+            if (_receiver.p == zero || _receiver.g == zero || _receiver.x == zero)
             {
                 MessageBox.Show("Сгенерируйте P,G,X");
                 return;
@@ -46,7 +47,7 @@ namespace Kursach_ElGamal
 
         private void button5_Click(object sender, EventArgs e)
         {
-            if (_receiver.p == 0 || _receiver.g == 0 || _receiver.y == 0)
+            if (_receiver.p == zero || _receiver.g == zero || _receiver.y == zero)
             {
                 MessageBox.Show("Сгенерируйте P,G,Y");
                 return;
@@ -59,7 +60,7 @@ namespace Kursach_ElGamal
 
         private void button6_Click(object sender, EventArgs e)
         {
-            if (_receiver.a == 0 || _receiver.b == 0)
+            if (_receiver.a == zero || _receiver.b == zero)
             {
                 MessageBox.Show("a,b нет у получаетля");
                 return;
@@ -74,7 +75,7 @@ namespace Kursach_ElGamal
 
         private void button8_Click(object sender, EventArgs e)
         {
-            if (_sender.p == 0)
+            if (_sender.p == zero)
             {
                 MessageBox.Show("Ключа P нет у отправителя");
                 return;
@@ -84,7 +85,7 @@ namespace Kursach_ElGamal
 
         private void button10_Click(object sender, EventArgs e)
         {
-            if (_sender.a == 0 || _sender.b == 0)
+            if (_sender.a == zero || _sender.b == zero)
             {
                 MessageBox.Show("a,b не сгенерированы");
                 return;
@@ -96,7 +97,7 @@ namespace Kursach_ElGamal
 
         private void button9_Click(object sender, EventArgs e)
         {
-            if (_sender.g == 0 || _sender.k == 0 || _sender.p == 0 || _sender.y == 0 || _sender.message == 0)
+            if (_sender.g == zero || _sender.k == zero || _sender.p == zero || _sender.y == zero || _sender.message == zero)
             {
                 MessageBox.Show("Ключей G,K,P,Y и сообщения нет у отправителя");
                 return;
@@ -107,7 +108,7 @@ namespace Kursach_ElGamal
 
         private void button11_Click(object sender, EventArgs e)
         {
-            _sender.message = uint.Parse(textBox1.Text);
+            _sender.message = new BigInt(uint.Parse(textBox1.Text));
         }
     }
 }

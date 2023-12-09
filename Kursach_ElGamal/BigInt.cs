@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.SymbolStore;
 using System.Drawing;
 using System.Globalization;
+using System.Numerics;
 
 namespace Kursach_ElGamal
 {
@@ -11,7 +12,7 @@ namespace Kursach_ElGamal
         private uint[] data = null;
         public bool sign = true;
         public int dataLength;
-        private const int maxLength = 50;
+        private const int maxLength = 2;
         Random rand = new Random();
 
         public static readonly int[] primesNumbers = {
@@ -161,17 +162,15 @@ namespace Kursach_ElGamal
         }
         public BigInt(bool isClone, BigInt value) // конструктор копирования и для чисел с максимальным значением
         {
+            dataLength = value.dataLength;
+            data = new uint[dataLength];
             if (isClone)
             {
-                dataLength = value.dataLength;
-                data = new uint[dataLength];
                 for (int i = 0; i < dataLength; i++)
                     data[i] = value.data[i];
             }
             else
             {
-                dataLength = 1;
-                data = new uint[dataLength];
                 GenRandomArrayUint(value.dataLength - 1, value.data[dataLength - 1]);
             }
         }
@@ -219,7 +218,7 @@ namespace Kursach_ElGamal
             while (v.dataLength > 1 && v.data[v.dataLength - 1] == 0)
                 v.dataLength--;
         }
-        public void GenRandomArrayUint(int length = 50, uint maxValue = 0)
+        public void GenRandomArrayUint(int length = maxLength, uint maxValue = 0)
         {
             byte[] randBytes = new byte[length * 4];
             rand.NextBytes(randBytes);
@@ -262,6 +261,17 @@ namespace Kursach_ElGamal
             }
             return true;
         }
+        public static BigInt GCD(BigInt a, BigInt b)
+        {
+            BigInt zero = new BigInt(0);
+            while (b != zero)
+            {
+                var t = b;
+                b = a % b;
+                a = t;
+            }
+            return a;
+        }
         public static BigInt operator +(BigInt bi1, BigInt bi2)
         {
             int lenght = (bi1.dataLength > bi2.dataLength) ? bi1.dataLength : bi2.dataLength;
@@ -299,7 +309,7 @@ namespace Kursach_ElGamal
                 for (int i = 0; i < bi2.dataLength; i++)
                 {
                     long tmp = 0;
-                    tmp = (long)bi1.data[i] - (long)bi2.data[i] - carry;
+                    tmp = (long)bi1.data[i] - (long)bi2.data[i] - (long)carry;
                     if (tmp >= 0)
                     {
                         result.Add((uint)tmp);
@@ -315,7 +325,11 @@ namespace Kursach_ElGamal
                 }
                 if (diffLenght > 0)
                 {
-                    bi1.data[bi2.dataLength] -= carry;
+                    result.Add(bi1.data[bi2.dataLength] -= carry);
+                    for (int i = bi2.dataLength + 1; i < bi1.dataLength; i++)
+                    {
+                        result.Add(bi1.data[i]);
+                    }
                 }
             }
             else
@@ -341,7 +355,11 @@ namespace Kursach_ElGamal
                 }
                 if (diffLenght > 0)
                 {
-                    bi2.data[bi1.dataLength] -= carry;
+                    result.Add(bi2.data[bi1.dataLength] -= carry);
+                    for (int i = bi1.dataLength + 1; i < bi2.dataLength; i++)
+                    {
+                        result.Add(bi2.data[i]);
+                    }
                 }
             }
 
@@ -392,7 +410,6 @@ namespace Kursach_ElGamal
             EqualizeLenght(res);
             return res;
         }
-
         public static BigInt operator >>(BigInt b, int shiftVal)
         {
             int skipBlock = shiftVal / 32;
@@ -418,58 +435,6 @@ namespace Kursach_ElGamal
             tmp.Reverse();
             BigInt result = new BigInt(tmp);
             EqualizeLenght(result);
-            return result;
-        }
-        public static BigInt operator ~(BigInt bi1)
-        {
-            BigInt result = new BigInt(true, bi1);
-
-            for (int i = 0; i < maxLength; i++)
-                result.data[i] = (uint)(~(bi1.data[i]));
-
-            result.dataLength = maxLength;
-
-            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                result.dataLength--;
-
-            return result;
-        }
-        public static BigInt operator -(BigInt bi1)
-        {
-            // handle neg of zero separately since it'll cause an overflow
-            // if we proceed.
-
-            if (bi1.dataLength == 1 && bi1.data[0] == 0)
-                return (new BigInt(false));
-
-            BigInt result = new BigInt(true, bi1);
-
-            // 1's complement
-            for (int i = 0; i < maxLength; i++)
-                result.data[i] = (uint)(~(bi1.data[i]));
-
-            // add one to result of 1's complement
-            long val, carry = 1;
-            int index = 0;
-
-            while (carry != 0 && index < maxLength)
-            {
-                val = (long)(result.data[index]);
-                val++;
-
-                result.data[index] = (uint)(val & 0xFFFFFFFF);
-                carry = val >> 32;
-
-                index++;
-            }
-
-            if ((bi1.data[maxLength - 1] & 0x80000000) == (result.data[maxLength - 1] & 0x80000000))
-                throw (new ArithmeticException("Overflow in negation.\n"));
-
-            result.dataLength = maxLength;
-
-            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
-                result.dataLength--;
             return result;
         }
         public static bool operator ==(BigInt bi1, BigInt bi2)
@@ -546,20 +511,50 @@ namespace Kursach_ElGamal
         {
             return (bi1 == bi2 || bi1 < bi2);
         }
+        public static BigInt operator -(BigInt bi1)
+        {
+            // handle neg of zero separately since it'll cause an overflow
+            // if we proceed.
+
+            if (bi1.dataLength == 1 && bi1.data[0] == 0)
+                return (new BigInt(0));
+
+            BigInt result = new BigInt(true, bi1);
+
+            // 1's complement
+            for (int i = 0; i < maxLength; i++)
+                result.data[i] = (uint)(~(bi1.data[i]));
+
+            // add one to result of 1's complement
+            long val, carry = 1;
+            int index = 0;
+
+            while (carry != 0 && index < maxLength)
+            {
+                val = (long)(result.data[index]);
+                val++;
+
+                result.data[index] = (uint)(val & 0xFFFFFFFF);
+                carry = val >> 32;
+
+                index++;
+            }
+
+            result.dataLength = maxLength;
+
+            while (result.dataLength > 1 && result.data[result.dataLength - 1] == 0)
+                result.dataLength--;
+            return result;
+        }
         private int GetBits()
         {
             int shiftBlocks = 0, shiftBits = 0;
-            while (data[dataLength - shiftBlocks] == 0)
-            {
-                shiftBlocks++;
-            }
-            while ((data[dataLength - shiftBlocks] >> shiftBits) != 0)
+            while ((data[dataLength - 1] >> shiftBits) != 1)
             {
                 shiftBits++;
             }
             return (dataLength - shiftBlocks) * 32 - (32 - shiftBits);
         }
-
         public static BigInt operator /(BigInt a, BigInt b)
         {
             if (a < b)
@@ -656,10 +651,90 @@ namespace Kursach_ElGamal
             EqualizeLenght(res);
             return res;
         }
-
         public static BigInt operator %(BigInt a, BigInt b)
         {
             return a - b * (a / b);
+        }
+        public BigInt gcd(BigInt b)
+        {
+            BigInt x = this;
+            BigInt y = b;
+
+            BigInt g = y;
+
+            while (x.dataLength > 1 || (x.dataLength == 1 && x.data[0] != 0))
+            {
+                g = x;
+                x = y % x;
+                y = g;
+            }
+
+            return g;
+        }
+        public static BigInt PowMod(BigInt value, BigInt exponent, BigInt modulus)
+        {
+            return barmodpow(value, exponent, modulus);
+        }
+
+
+        static BigInt sprecip(BigInt N, int S)
+        {
+            BigInt D = new BigInt(1);
+            for (int i = 0; i < (S << 1) - 1; i++)
+            {
+                D *= new BigInt(2);
+            }
+            D /= N;
+            return D;
+        }
+        public static BigInt barmodpow(BigInt B, BigInt X, BigInt M)
+        {
+            int S;
+            BigInt D, R;
+            BigInt zero = new BigInt(0);
+
+            S = M.GetBits();
+            R = sprecip(M, S);
+            D = new BigInt(1);
+            B %= M;
+            if ((X.LastValue() & 1) == 1)
+            {
+                D = new BigInt(true, B);
+            }
+
+            while ((X >>= 1) != zero)
+            {
+                B = barmodmul(B, B, M, R, S);
+                if ((X.LastValue() & 1) == 1)
+                {
+                    D = barmodmul(D, B, M, R, S);
+                }
+            }
+            return D;
+        }
+
+        static BigInt barmodmul(BigInt A, BigInt B, BigInt M, BigInt R, int S)
+        {
+            BigInt T, P;
+
+            P = new BigInt(true, A);
+            P *= B;
+
+            if (P >= M)
+            {
+                T = P >> S;
+                T *= R;
+                T >>= (S - 1);
+                T *= M;
+                P -= T;
+
+                //uint Ct = 4;
+                while ((P >= M))
+                {
+                    P -= M;
+                }
+            }
+            return P;
         }
     }
 }

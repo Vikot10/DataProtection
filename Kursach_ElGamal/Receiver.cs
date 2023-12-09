@@ -9,49 +9,46 @@ namespace Kursach_ElGamal
 {
     public class Receiver
     {
-        public uint p;
-        public uint g;
-        public uint x;
-        public uint y;
-        public uint a;
-        public uint b;
-        public uint message;
-        public uint decMessage;
+        public BigInt p;
+        public BigInt g;
+        public BigInt x;
+        public BigInt y;
+        public BigInt a;
+        public BigInt b;
+        public BigInt message;
+        public BigInt decMessage;
 
-        public uint GenerateP()
+        public BigInt GenerateP()
         {
-            p = Helpers.GeneratePrime();
+            p = new BigInt(true);
             return p;
         }
 
-        public uint GenerateG()
+        public BigInt GenerateG()
         {
-            g = Helpers.GenerateRandomNumber(p);
+            g = new BigInt(false,p);
             return g;
         }
 
-        public uint GenerateX()
+        public BigInt GenerateX()
         {
-            x = Helpers.GenerateRandomNumber(p - 1);
+            x = new BigInt(false, p);
             return x;
         }
 
-        public uint GenerateY()
+        public BigInt GenerateY()
         {
-            y = Helpers.PowMod(g, x, p);
+            y = BigInt.PowMod(g, x, p);
             return y;
         }
-        public void Receive(uint a, uint b)
+        public void Receive(BigInt a, BigInt b)
         {
             this.a = a; 
             this.b = b;
         }
-        public uint Decode()
+        public BigInt Decode()
         {
-            ulong ms = Helpers.PowMod(a, p - 1 - x, p);
-            ulong mz = Helpers.PowMod(b, 1, p);
-            ulong mc = (ms * mz) % (ulong)p;
-            decMessage = (uint)mc;
+            decMessage = (b * BigInt.PowMod(a, p - new BigInt(1) - x, p)) % p;
             return decMessage;
         }
     }
