@@ -120,6 +120,8 @@ namespace Kursach_ElGamal
                     uDig /= 10;
                 }
             }
+            if (cuDst == 0 && rgch[0] == '\0')
+                return "0";
             for (uint uDig = rguDst[cuDst - 1]; uDig != 0;)
             {
                 rgch[--ichDst] = (char)('0' + uDig % 10);
@@ -159,15 +161,17 @@ namespace Kursach_ElGamal
         }
         public BigInt(bool isClone, BigInt value) // конструктор копирования и для чисел с максимальным значением
         {
-            InitData();
             if (isClone)
             {
                 dataLength = value.dataLength;
+                data = new uint[dataLength];
                 for (int i = 0; i < dataLength; i++)
                     data[i] = value.data[i];
             }
             else
             {
+                dataLength = 1;
+                data = new uint[dataLength];
                 GenRandomArrayUint(value.dataLength - 1, value.data[dataLength - 1]);
             }
         }
@@ -239,30 +243,23 @@ namespace Kursach_ElGamal
             res = rand.Next(res);
             return (uint)res;
         }
-        public int IntValue()
+        public uint LastValue()
         {
-            return (int)data[0];
+            return data[0];
         }
         public bool IsPrime()
         {
-            //BigInt thisVal;
-            //if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
-            //    thisVal = -this;
-            //else
-            //    thisVal = this;
+            for (int p = 0; p < primesNumbers.Length; p++)
+            {
+                BigInt divisor = new BigInt((ulong)primesNumbers[p]);
 
-            //// test for divisibility by primes < 2000
-            //for (int p = 0; p < primesNumbers.Length; p++)
-            //{
-            //    BigInt divisor = new BigInt((ulong)primesNumbers[p]);
+                if (divisor >= this)
+                    break;
 
-            //    if (divisor >= thisVal)
-            //        break;
-
-            //    BigInt resultNum = thisVal % divisor;
-            //    if (resultNum.IntValue() == 0)
-            //        return false;
-            //}
+                BigInt resultNum = this % divisor;
+                if (resultNum.LastValue() == 0)
+                    return false;
+            }
             return true;
         }
         public static BigInt operator +(BigInt bi1, BigInt bi2)
@@ -281,63 +278,73 @@ namespace Kursach_ElGamal
                 carry = sum >> 32;
                 numbers.Add((uint)(sum & 0xFFFFFFFF));
             }
+            if (carry != 0)
+            {
+                numbers.Add((uint)carry);
+            }
             var res = new BigInt(numbers);
             EqualizeLenght(res);
             return res;
         }
         public static BigInt operator -(BigInt bi1, BigInt bi2)
         {
-            uint[] d1, d2;
             bool sign = true;
-            if (bi1 > bi2)
+            List<uint> result = new List<uint>();
+            uint carry = 0;
+            ulong mu = 1;
+            mu <<= 32;
+            if (bi1 >= bi2)
             {
-                d1 = new uint[bi1.dataLength];
-                d2 = new uint[bi2.dataLength];
-                for (int i = 0; i < bi1.dataLength; i++)
-                {
-                    d1[i] = bi1.data[i];
-                }
+                int diffLenght = bi1.dataLength - bi2.dataLength;
                 for (int i = 0; i < bi2.dataLength; i++)
                 {
-                    d2[i] = bi2.data[i];
+                    long tmp = 0;
+                    tmp = (long)bi1.data[i] - (long)bi2.data[i] - carry;
+                    if (tmp >= 0)
+                    {
+                        result.Add((uint)tmp);
+                        carry = 0;
+                    }
+                    else
+                    {
+                        ulong dt = mu | bi1.data[i];
+                        dt -= (bi2.data[i] + carry);
+                        result.Add((uint)dt);
+                        carry = 1;
+                    }
+                }
+                if (diffLenght > 0)
+                {
+                    bi1.data[bi2.dataLength] -= carry;
                 }
             }
             else
             {
                 sign = false;
-                d1 = new uint[bi2.dataLength];
-                d2 = new uint[bi1.dataLength];
-                for (int i = 0; i < bi2.dataLength; i++)
-                {
-                    d1[i] = bi2.data[i];
-                }
+                int diffLenght = bi2.dataLength - bi1.dataLength;
                 for (int i = 0; i < bi1.dataLength; i++)
                 {
-                    d2[i] = bi1.data[i];
+                    long tmp = 0;
+                    tmp = bi2.data[i] - bi1.data[i] - carry;
+                    if (tmp > 0)
+                    {
+                        result.Add((uint)tmp);
+                        carry = 0;
+                    }
+                    else
+                    {
+                        ulong dt = mu | bi2.data[i];
+                        dt -= (bi1.data[i] + carry);
+                        result.Add((uint)dt);
+                        carry = 1;
+                    }
+                }
+                if (diffLenght > 0)
+                {
+                    bi2.data[bi1.dataLength] -= carry;
                 }
             }
 
-            List<uint> result = new List<uint>();
-            uint carry = 0;
-            ulong mu = 1;
-
-            for (int i = 0; i < d2.Length; i++)
-            {
-                long tmp = 0;
-                tmp = d1[i] - d2[i] - carry;
-                if (tmp > 0)
-                {
-                    result.Add((uint)tmp);
-                    carry = 0;
-                }
-                else
-                {
-                    ulong dt = (mu << 32) | d1[i];
-                    dt -= (d2[i] + carry);
-                    result.Add((uint)dt);
-                    carry = 1;
-                }
-            }
 
             var res = new BigInt(result)
             {
@@ -405,7 +412,8 @@ namespace Kursach_ElGamal
                 uint cur = newData[i] >> shiftAmount;
                 cur |= carry;
                 tmp.Add(cur);
-                carry = newData[i] << (32 - shiftAmount);
+                if (shiftAmount > 0)
+                    carry = newData[i] << (32 - shiftAmount);
             }
             tmp.Reverse();
             BigInt result = new BigInt(tmp);
@@ -556,6 +564,8 @@ namespace Kursach_ElGamal
         {
             if (a < b)
                 return new BigInt(false);
+            if (a == b)
+                return new BigInt(1);
 
             int div = a.dataLength - b.dataLength;
             int shift = 0;
@@ -600,82 +610,56 @@ namespace Kursach_ElGamal
                 }
             }
             BigInt r = null;
+            BigInt resPlus;
             for (int i = 0; i < leftLenght; i++)
             {
                 x = a >> (leftLenght - i);
+                int index = 0;
                 for (; ; )
                 {
-                    r = x - (b * res);
-                    BigInt r2 = res + plus;
-                    if (r.sign == true)
+                    resPlus = res + plus;
+                    r = x - (b * resPlus);
+                    if (r.sign == false)
                     {
-                        r = x - (b * r2);
-                        if (r.sign == false)
-                        {
-                            break;
-                        }
-                        var r3 = r2 + new BigInt(100);
-                        r = x - (b * r3);
-                        if (r.sign == true)
-                        {
-                            var r4 = r2 + new BigInt(1000);
-                            r = x - (b * r4);
-                            if (r.sign == true)
-                            {
-                                var r5 = r2 + new BigInt(10000);
-                                r = x - (b * r5);
-                                if (r.sign == true)
-                                {
-                                    var r6 = r2 + new BigInt(100000);
-                                    r = x - (b * r6);
-                                    if (r.sign == true)
-                                    {
-                                        var r7 = r2 + new BigInt(1000000);
-                                        r = x - (b * r7);
-                                        if (r.sign == true)
-                                        {
-                                            var r8 = r2 + new BigInt(10000000);
-                                            r = x - (b * r8);
-                                            if (r.sign == true)
-                                            {
-                                                res = r8;
-                                                continue;
-                                            }
-                                            res = r7;
-                                            continue;
-                                        }
-                                        res = r6;
-                                        continue;
-                                    }
-                                    res = r5;
-                                    continue;
-                                }
-                                res = r4;
-                                continue;
-                            }
-                            res = r3;
-                            continue;
-                        }
-                        res = r2;
+                        break;
                     }
-                    else
-                    {
-                        res -= plus;
-                    }
+                    res = resPlus;
+                    //r = x - (b * res);
+                    //if (r.sign == true)
+                    //{
+                    //    r = x - (b * r2);
+                    //    if (r.sign == false)
+                    //    {
+                    //        break;
+                    //    }
+
+                    //    res = r2;
+                    //}
+                    //else
+                    //{
+                    //    res -= plus;
+                    //}
+                    //index++;
+                    //if (index>2)
+                    //{
+                    //    //Console.WriteLine("zx0");
+                    //}
                 }
                 res *= mul;
+            }
+            resPlus = res + plus;
+            r = a - (b * resPlus);
+            if (r.sign == true)
+            {
+                res = resPlus;
             }
             EqualizeLenght(res);
             return res;
         }
 
-        //public (BigInt, BigInt) Divide(BigInt a, BigInt b)
-        //{
-        //}
-
-        //public static BigInt operator %(BigInt bi1, BigInt bi2)
-        //{
-
-        //}
+        public static BigInt operator %(BigInt a, BigInt b)
+        {
+            return a - b * (a / b);
+        }
     }
 }
