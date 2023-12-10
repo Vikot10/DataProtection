@@ -12,7 +12,7 @@ namespace Kursach_ElGamal
 
         private void button1_Click(object sender, EventArgs e)
         {
-            label2.Text = "P=" + _receiver.GenerateP().ToString();
+            textBox4.Text = _receiver.GenerateP().ToString();
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -22,7 +22,7 @@ namespace Kursach_ElGamal
                 MessageBox.Show("Сгенерируйте P");
                 return;
             }
-            label5.Text = "X=" + _receiver.GenerateX().ToString();
+            textBox5.Text = _receiver.GenerateX().ToString();
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -32,7 +32,7 @@ namespace Kursach_ElGamal
                 MessageBox.Show("Сгенерируйте P");
                 return;
             }
-            label4.Text = "G=" + _receiver.GenerateG().ToString();
+            textBox3.Text = _receiver.GenerateG().ToString();
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -42,7 +42,7 @@ namespace Kursach_ElGamal
                 MessageBox.Show("Сгенерируйте P,G,X");
                 return;
             }
-            label6.Text = "Y=" + _receiver.GenerateY().ToString();
+            textBox6.Text = _receiver.GenerateY().ToString();
         }
 
         private void button5_Click(object sender, EventArgs e)
@@ -52,9 +52,9 @@ namespace Kursach_ElGamal
                 MessageBox.Show("Сгенерируйте P,G,Y");
                 return;
             }
-            label7.Text = "G=" + _receiver.g.ToString();
-            label8.Text = "P=" + _receiver.p.ToString();
-            label9.Text = "Y=" + _receiver.y.ToString();
+            textBox7.Text = _receiver.g.ToString();
+            textBox8.Text = _receiver.p.ToString();
+            textBox9.Text = _receiver.y.ToString();
             _sender.Receive(_receiver.g, _receiver.p, _receiver.y);
         }
 
@@ -75,7 +75,7 @@ namespace Kursach_ElGamal
                 MessageBox.Show("Ключа P нет у отправителя");
                 return;
             }
-            label12.Text = "K=" + _sender.GenerateK().ToString();
+            textBox12.Text = _sender.GenerateK().ToString();
         }
 
         private void button10_Click(object sender, EventArgs e)
@@ -85,8 +85,13 @@ namespace Kursach_ElGamal
                 MessageBox.Show("a,b не сгенерированы");
                 return;
             }
-            label15.Text = "a=" + _sender.a.ToString();
-            label16.Text = "b=" + _sender.b.ToString();
+            textBox10.Text = _sender.a.ToString();
+            textBox11.Text = "";
+            var bb = _sender.b;
+            for (int i = 0; i < bb.Count; i++)
+            {
+                textBox11.Text += $"b{i} = {bb[i]} \n";
+            }
             _receiver.Receive(_sender.a, _sender.b);
         }
 
@@ -97,8 +102,13 @@ namespace Kursach_ElGamal
                 MessageBox.Show("Ключей G,K,P,Y и сообщения нет у отправителя");
                 return;
             }
-            label13.Text = "a=" + _sender.GenerateA().ToString();
-            label14.Text = "b=" + _sender.GenerateB().ToString();
+            textBox13.Text = _sender.GenerateA().ToString();
+            textBox14.Text = "";
+            var bb = _sender.GenerateB();
+            for (int i = 0; i < bb.Count; i++)
+            {
+                textBox14.Text += $"b{i} = {bb[i]} \n";
+            }
         }
 
         private void button11_Click(object sender, EventArgs e)

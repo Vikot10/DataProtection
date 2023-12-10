@@ -48,6 +48,7 @@ namespace Kursach_ElGamal
         }
         public string Decode()
         {
+            decMessage = "";
             foreach(var c in b)
             {
                 var dec = (c * BigInt.PowMod(a, p - new BigInt(1) - x, p)) % p;
