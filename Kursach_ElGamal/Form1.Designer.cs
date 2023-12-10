@@ -338,7 +338,6 @@
             button7.TabIndex = 12;
             button7.Text = "Сгенерировать сообщение";
             button7.UseVisualStyleBackColor = true;
-            button7.Click += button7_Click;
             // 
             // textBox1
             // 

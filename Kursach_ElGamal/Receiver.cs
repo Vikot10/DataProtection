@@ -14,9 +14,9 @@ namespace Kursach_ElGamal
         public BigInt x;
         public BigInt y;
         public BigInt a;
-        public BigInt b;
+        public List<BigInt> b;
         public BigInt message;
-        public BigInt decMessage;
+        public string decMessage;
 
         public BigInt GenerateP()
         {
@@ -41,14 +41,22 @@ namespace Kursach_ElGamal
             y = BigInt.PowMod(g, x, p);
             return y;
         }
-        public void Receive(BigInt a, BigInt b)
+        public void Receive(BigInt a, List<BigInt> b)
         {
             this.a = a; 
             this.b = b;
         }
-        public BigInt Decode()
+        public string Decode()
         {
-            decMessage = (b * BigInt.PowMod(a, p - new BigInt(1) - x, p)) % p;
+            foreach(var c in b)
+            {
+                var dec = (c * BigInt.PowMod(a, p - new BigInt(1) - x, p)) % p;
+                var decBytes = dec.ToByteArray();
+                foreach(var bb in decBytes)
+                {
+                    decMessage += (char)bb;
+                }                
+            }
             return decMessage;
         }
     }

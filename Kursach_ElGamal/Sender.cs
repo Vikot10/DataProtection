@@ -15,19 +15,14 @@ namespace Kursach_ElGamal
         public BigInt y;
         public BigInt k;
         public BigInt a;
-        public BigInt b;
-        public BigInt message;
+        public List<BigInt> b;
+        public string message;
 
         public void Receive(BigInt g, BigInt p, BigInt y)
         {
             this.g = g;
             this.p = p;
             this.y = y;
-        }
-        public BigInt GenerateMessage()
-        {
-            message = new BigInt(false,p);
-            return message;
         }
         
         public BigInt GenerateK()
@@ -45,12 +40,39 @@ namespace Kursach_ElGamal
             a = BigInt.PowMod(g, k, p);
             return a;
         }
-        public BigInt GenerateB()
+        public List<BigInt> GenerateB()
         {
-            BigInt ms = BigInt.PowMod(y, k, p);
-            BigInt mz = message%p;
-            BigInt mc = (ms * mz) % p;
-            b = mc;
+            b = new List<BigInt>();
+            int bitsL = (BigInt.textLenght * 4);
+            int takeL = bitsL;
+            int messageLenght = (int)Math.Ceiling((double)message.Length / bitsL);
+            for (int i = 0;i< messageLenght; i++)
+            {
+                string t;
+                if (i == messageLenght - 1)
+                {
+                    t = message.Substring(i * bitsL);
+                }
+                else
+                {
+                    t = message.Substring(i * bitsL, bitsL);
+                }
+                List<byte> by = new List<byte>();
+                foreach(var ch in t)
+                {
+                    by.Add((byte)ch);
+                }
+                if (by.Count % 4 != 0)
+                {
+                    var len = 4 - by.Count % 4;
+                    for (int cvb = 0; cvb < len; cvb++)
+                    {
+                        by.Add(0);
+                    }
+                }
+                BigInt tmp = new BigInt(by.ToArray());
+                b.Add((BigInt.PowMod(y, k, p) * tmp) % p);
+            }
             return b;
         }
 

@@ -60,17 +60,12 @@ namespace Kursach_ElGamal
 
         private void button6_Click(object sender, EventArgs e)
         {
-            if (_receiver.a == zero || _receiver.b == zero)
+            if (_receiver.a == zero || _receiver.b == null)
             {
                 MessageBox.Show("a,b нет у получаетля");
                 return;
             }
-            textBox2.Text = _receiver.Decode().ToString();
-        }
-
-        private void button7_Click(object sender, EventArgs e)
-        {
-            textBox1.Text = _sender.GenerateMessage().ToString();
+            textBox2.Text = _receiver.Decode();
         }
 
         private void button8_Click(object sender, EventArgs e)
@@ -85,7 +80,7 @@ namespace Kursach_ElGamal
 
         private void button10_Click(object sender, EventArgs e)
         {
-            if (_sender.a == zero || _sender.b == zero)
+            if (_sender.a == zero || _sender.b == null)
             {
                 MessageBox.Show("a,b не сгенерированы");
                 return;
@@ -97,7 +92,7 @@ namespace Kursach_ElGamal
 
         private void button9_Click(object sender, EventArgs e)
         {
-            if (_sender.g == zero || _sender.k == zero || _sender.p == zero || _sender.y == zero || _sender.message == zero)
+            if (_sender.g == zero || _sender.k == zero || _sender.p == zero || _sender.y == zero || _sender.message == "")
             {
                 MessageBox.Show("Ключей G,K,P,Y и сообщения нет у отправителя");
                 return;
@@ -108,7 +103,7 @@ namespace Kursach_ElGamal
 
         private void button11_Click(object sender, EventArgs e)
         {
-            _sender.message = new BigInt(uint.Parse(textBox1.Text));
+            _sender.message = textBox1.Text;
         }
     }
 }
